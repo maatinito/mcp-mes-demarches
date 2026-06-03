@@ -4,9 +4,9 @@ import { tools } from './tools.js';
 const byName = (n: string) => tools.find((t) => t.name === n)!;
 
 describe('tools', () => {
-  it('expose les 6 outils', () => {
+  it('expose les 7 outils', () => {
     expect(tools.map((t) => t.name).sort()).toEqual(
-      ['ajouter_champ', 'definir_condition', 'deplacer_champ', 'lire_demarche', 'modifier_champ', 'supprimer_champ']
+      ['aide_formule', 'ajouter_champ', 'definir_condition', 'deplacer_champ', 'lire_demarche', 'modifier_champ', 'supprimer_champ']
     );
   });
 
@@ -64,5 +64,13 @@ describe('tools', () => {
     await byName('modifier_champ').run({ gql }, { demarcheNumber: 1, stableId: '9', options: { max_number: 100 } });
     const [, variables] = gql.mock.calls[0];
     expect(variables.input.options).toEqual({ max_number: 100 });
+  });
+
+  it('aide_formule interroge la query aideFormule', async () => {
+    const gql = vi.fn().mockResolvedValue({ aideFormule: 'doc... SOMME ...' });
+    const res = await byName('aide_formule').run({ gql }, { demarcheNumber: 2, stableId: '9' });
+    const [, variables] = gql.mock.calls[0];
+    expect(variables).toEqual({ demarche: { number: 2 }, stableId: '9' });
+    expect(res.content[0].text).toContain('SOMME');
   });
 });

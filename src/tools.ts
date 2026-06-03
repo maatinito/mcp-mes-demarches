@@ -19,14 +19,21 @@ const MUTATION_PAYLOAD = '{ champStableId errors { message } }';
 // Le serveur valide les clés par type (OPTS_BY_TYPE) ; .passthrough() autorise les options
 // PF avancées (visa: accredited_users, formule: formule_expression, te_fenua…) non typées ici.
 const optionsSchema = z.object({
-  drop_down_options: z.array(z.string()).optional().describe('Valeurs de la liste déroulante (drop_down_list, multiple_drop_down_list, linked_drop_down_list).'),
+  drop_down_options: z.array(z.string()).optional().describe('Valeurs de la liste déroulante. Pour une liste à deux niveaux (linked_drop_down_list) : préfixer chaque option primaire par -- (ex: "--Catégorie A--") puis lister ses sous-options ensuite, ligne par ligne.'),
   drop_down_other: z.boolean().optional().describe('Autoriser une réponse libre « Autre » (drop_down_list).'),
   positive_number: z.boolean().optional().describe('Forcer un nombre positif (integer_number, decimal_number).'),
   min_number: z.number().optional().describe('Borne minimale (integer_number, decimal_number).'),
   max_number: z.number().optional().describe('Borne maximale (integer_number, decimal_number).'),
   character_limit: z.number().optional().describe('Limite de caractères (textarea).'),
   date_in_past: z.boolean().optional().describe("N'autoriser que des dates passées (date, datetime)."),
-  accredited_users: z.array(z.string()).optional().describe('Emails des personnes accréditées à cocher le visa (champ visa).')
+  accredited_users: z.array(z.string()).optional().describe('Emails des personnes accréditées à cocher le visa (champ visa).'),
+  header_section_level: z.number().int().min(1).max(3).optional().describe('Niveau de titre (1 à 3) pour un champ header_section.'),
+  expression_reguliere: z.string().optional().describe('Expression régulière de validation (champ formatted), ancrée avec ^ et $. Ex: ^[0-9]{5}$'),
+  expression_reguliere_indications: z.string().optional().describe('Indication affichée à l\'usager sur le format attendu (champ formatted).'),
+  expression_reguliere_exemple_text: z.string().optional().describe('Exemple de saisie valide montré à l\'usager (champ formatted).'),
+  expression_reguliere_error_message: z.string().optional().describe('Message d\'erreur si la saisie ne respecte pas l\'expression régulière (champ formatted).'),
+  formule_expression: z.string().optional().describe("Expression d'un champ formule. Appelle d'abord l'outil aide_formule pour connaître la syntaxe, les variables et fonctions disponibles."),
+  formule_output_type: z.string().optional().describe("Type de sortie d'une formule : 'number' (défaut), 'boolean', 'text', 'date'.")
 }).passthrough().describe('Options spécifiques au type de champ. Seules les options valides pour le type choisi sont acceptées (sinon erreur listant les options valides).');
 
 function mutationResult(payload: { champStableId: string | null; errors: Array<{ message: string }> | null }) {
@@ -134,6 +141,16 @@ export const tools: ToolDef[] = [
       if (a.combinateur !== undefined) input.combinateur = a.combinateur;
       const data = await gql(query, { input });
       return mutationResult(data.demarcheDefinirCondition);
+    }
+  },
+  {
+    name: 'aide_formule',
+    description: "Renvoie la documentation pour écrire l'expression d'un champ formule donné (variables référençables, fonctions disponibles, syntaxe, exemples). À appeler AVANT de définir formule_expression sur un champ formule via modifier_champ.",
+    inputSchema: { demarcheNumber: z.number().int(), stableId: z.string().describe('stable_id du champ formule.') },
+    run: async ({ gql }, { demarcheNumber, stableId }) => {
+      const query = `query($demarche: FindDemarcheInput!, $stableId: String!){ aideFormule(demarche: $demarche, stableId: $stableId) }`;
+      const data = await gql(query, { demarche: { number: demarcheNumber }, stableId });
+      return { content: [{ type: 'text', text: data.aideFormule }] };
     }
   }
 ];
