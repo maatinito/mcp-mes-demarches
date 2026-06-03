@@ -47,4 +47,21 @@ describe('tools', () => {
     expect(variables.demarche).toEqual({ number: 5 });
     expect(res.content[0].text).toContain('"libelle": "Nom"');
   });
+
+  it('ajouter_champ transmet les options', async () => {
+    const gql = vi.fn().mockResolvedValue({ demarcheAjouterChamp: { champStableId: '50', errors: null } });
+    await byName('ajouter_champ').run({ gql }, {
+      demarcheNumber: 7, typeChamp: 'drop_down_list', libelle: 'Civilité',
+      options: { drop_down_options: ['M.', 'Mme'], drop_down_other: true }
+    });
+    const [, variables] = gql.mock.calls[0];
+    expect(variables.input.options).toEqual({ drop_down_options: ['M.', 'Mme'], drop_down_other: true });
+  });
+
+  it('modifier_champ transmet les options', async () => {
+    const gql = vi.fn().mockResolvedValue({ demarcheModifierChamp: { champStableId: '9', errors: null } });
+    await byName('modifier_champ').run({ gql }, { demarcheNumber: 1, stableId: '9', options: { max_number: 100 } });
+    const [, variables] = gql.mock.calls[0];
+    expect(variables.input.options).toEqual({ max_number: 100 });
+  });
 });

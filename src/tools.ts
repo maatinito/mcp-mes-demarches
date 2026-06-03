@@ -15,6 +15,19 @@ export interface ToolDef {
 
 const MUTATION_PAYLOAD = '{ champStableId errors { message } }';
 
+// pf: options par type, typées pour guider Claude (le SDK MCP expose ces types en JSON Schema).
+// Le serveur valide les clés par type (OPTS_BY_TYPE) ; .passthrough() autorise les options
+// PF avancées (visa: accredited_users, formule: formule_expression, te_fenua…) non typées ici.
+const optionsSchema = z.object({
+  drop_down_options: z.array(z.string()).optional().describe('Valeurs de la liste déroulante (drop_down_list, multiple_drop_down_list, linked_drop_down_list).'),
+  drop_down_other: z.boolean().optional().describe('Autoriser une réponse libre « Autre » (drop_down_list).'),
+  positive_number: z.boolean().optional().describe('Forcer un nombre positif (integer_number, decimal_number).'),
+  min_number: z.number().optional().describe('Borne minimale (integer_number, decimal_number).'),
+  max_number: z.number().optional().describe('Borne maximale (integer_number, decimal_number).'),
+  character_limit: z.number().optional().describe('Limite de caractères (textarea).'),
+  date_in_past: z.boolean().optional().describe("N'autoriser que des dates passées (date, datetime).")
+}).passthrough().describe('Options spécifiques au type de champ. Seules les options valides pour le type choisi sont acceptées (sinon erreur listant les options valides).');
+
 function mutationResult(payload: { champStableId: string | null; errors: Array<{ message: string }> | null }) {
   if (payload.errors && payload.errors.length > 0) {
     return { isError: true, content: [{ type: 'text' as const, text: 'Échec : ' + payload.errors.map((e) => e.message).join(' ; ') }] };
@@ -37,7 +50,7 @@ export const tools: ToolDef[] = [
   },
   {
     name: 'ajouter_champ',
-    description: "Ajoute un champ à la révision brouillon. Renvoie le stable_id du nouveau champ.",
+    description: "Ajoute un champ à la révision brouillon. Renvoie le stable_id du nouveau champ. Options par type via `options` : listes → drop_down_options/drop_down_other ; nombres → positive_number/min_number/max_number ; texte long → character_limit.",
     inputSchema: {
       demarcheNumber: z.number().int(),
       typeChamp: z.string().describe('text, textarea, integer_number, decimal_number, email, phone, date, yes_no, checkbox, drop_down_list, header_section, repetition, etc.'),
@@ -46,12 +59,13 @@ export const tools: ToolDef[] = [
       obligatoire: z.boolean().optional(),
       prive: z.boolean().optional(),
       parentStableId: z.string().optional().describe('Pour insérer dans une répétition/bloc.'),
-      apresStableId: z.string().optional().describe('Insérer juste après ce champ.')
+      apresStableId: z.string().optional().describe('Insérer juste après ce champ.'),
+      options: optionsSchema.optional()
     },
     run: async ({ gql }, a) => {
       const query = `mutation($input: DemarcheAjouterChampInput!){ demarcheAjouterChamp(input: $input) ${MUTATION_PAYLOAD} }`;
       const input: Record<string, unknown> = { demarche: demarcheInput(a.demarcheNumber), typeChamp: a.typeChamp, libelle: a.libelle };
-      for (const k of ['description', 'obligatoire', 'prive', 'parentStableId', 'apresStableId'] as const) {
+      for (const k of ['description', 'obligatoire', 'prive', 'parentStableId', 'apresStableId', 'options'] as const) {
         if (a[k] !== undefined) input[k] = a[k];
       }
       const data = await gql(query, { input });
@@ -60,19 +74,20 @@ export const tools: ToolDef[] = [
   },
   {
     name: 'modifier_champ',
-    description: "Modifie un champ existant (libellé, description, obligatoire, type). Le changement de type d'un champ déjà publié est restreint aux types compatibles.",
+    description: "Modifie un champ existant (libellé, description, obligatoire, type). Le changement de type d'un champ déjà publié est restreint aux types compatibles. Options par type via `options` : listes → drop_down_options/drop_down_other ; nombres → positive_number/min_number/max_number ; texte long → character_limit.",
     inputSchema: {
       demarcheNumber: z.number().int(),
       stableId: z.string(),
       libelle: z.string().optional(),
       description: z.string().optional(),
       obligatoire: z.boolean().optional(),
-      typeChamp: z.string().optional()
+      typeChamp: z.string().optional(),
+      options: optionsSchema.optional()
     },
     run: async ({ gql }, a) => {
       const query = `mutation($input: DemarcheModifierChampInput!){ demarcheModifierChamp(input: $input) ${MUTATION_PAYLOAD} }`;
       const input: Record<string, unknown> = { demarche: demarcheInput(a.demarcheNumber), stableId: a.stableId };
-      for (const k of ['libelle', 'description', 'obligatoire', 'typeChamp'] as const) {
+      for (const k of ['libelle', 'description', 'obligatoire', 'typeChamp', 'options'] as const) {
         if (a[k] !== undefined) input[k] = a[k];
       }
       const data = await gql(query, { input });
