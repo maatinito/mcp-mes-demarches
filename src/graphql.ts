@@ -9,12 +9,24 @@ export async function gqlRequest<T = unknown>(
 ): Promise<T> {
   const res = await fetchImpl(config.url, {
     method: 'POST',
+    // `manual` : ne pas suivre une redirection en silence. Une 3xx (ex. apex
+    // -> www) transformerait le POST en GET et perdrait le body, produisant
+    // une page HTML 404 trompeuse au lieu d'une réponse GraphQL.
+    redirect: 'manual',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${config.token}`
     },
     body: JSON.stringify({ query, variables })
   });
+
+  if (res.status >= 300 && res.status < 400) {
+    const location = res.headers.get('location') ?? '(inconnue)';
+    throw new Error(
+      `Redirection HTTP ${res.status} de ${config.url} vers ${location}. ` +
+        `Corrigez MD_GRAPHQL_URL pour pointer directement sur l'URL finale (www manquant ?).`
+    );
+  }
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
