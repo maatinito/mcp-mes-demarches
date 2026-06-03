@@ -25,7 +25,8 @@ const optionsSchema = z.object({
   min_number: z.number().optional().describe('Borne minimale (integer_number, decimal_number).'),
   max_number: z.number().optional().describe('Borne maximale (integer_number, decimal_number).'),
   character_limit: z.number().optional().describe('Limite de caractères (textarea).'),
-  date_in_past: z.boolean().optional().describe("N'autoriser que des dates passées (date, datetime).")
+  date_in_past: z.boolean().optional().describe("N'autoriser que des dates passées (date, datetime)."),
+  accredited_users: z.array(z.string()).optional().describe('Emails des personnes accréditées à cocher le visa (champ visa).')
 }).passthrough().describe('Options spécifiques au type de champ. Seules les options valides pour le type choisi sont acceptées (sinon erreur listant les options valides).');
 
 function mutationResult(payload: { champStableId: string | null; errors: Array<{ message: string }> | null }) {
@@ -43,7 +44,7 @@ export const tools: ToolDef[] = [
     description: "Liste les champs de la révision brouillon d'une démarche (stable_id, type, libellé, condition…). À appeler avant de modifier/déplacer/supprimer un champ existant.",
     inputSchema: { demarcheNumber: z.number().int().describe('Numéro de la démarche.') },
     run: async ({ gql }, { demarcheNumber }) => {
-      const query = `query($demarche: FindDemarcheInput!){ demarcheChamps(demarche: $demarche){ stableId typeChamp libelle description obligatoire prive parentStableId position aCondition } }`;
+      const query = `query($demarche: FindDemarcheInput!){ demarcheChamps(demarche: $demarche){ stableId typeChamp libelle description obligatoire prive parentStableId position aCondition options } }`;
       const data = await gql(query, { demarche: demarcheInput(demarcheNumber) });
       return { content: [{ type: 'text', text: JSON.stringify(data.demarcheChamps, null, 2) }] };
     }
