@@ -32,8 +32,7 @@ const optionsSchema = z.object({
   expression_reguliere_indications: z.string().optional().describe('Indication affichée à l\'usager sur le format attendu (champ formatted).'),
   expression_reguliere_exemple_text: z.string().optional().describe('Exemple de saisie valide montré à l\'usager (champ formatted).'),
   expression_reguliere_error_message: z.string().optional().describe('Message d\'erreur si la saisie ne respecte pas l\'expression régulière (champ formatted).'),
-  formule_expression: z.string().optional().describe("Expression d'un champ formule. Appelle d'abord l'outil aide_formule pour connaître la syntaxe, les variables et fonctions disponibles."),
-  formule_output_type: z.string().optional().describe("Type de sortie d'une formule : 'number' (défaut), 'boolean', 'text', 'date'.")
+  formule_expression: z.string().optional().describe("Expression d'un champ formule, en RÉFÉRENÇANT les champs par leur libellé : {Libellé}. Appelle d'abord l'outil aide_formule pour la syntaxe, les variables et fonctions disponibles. Le type de sortie et les dépendances sont inférés automatiquement (ne pas les fournir).")
 }).passthrough().describe('Options spécifiques au type de champ. Seules les options valides pour le type choisi sont acceptées (sinon erreur listant les options valides).');
 
 function mutationResult(payload: { champStableId: string | null; errors: Array<{ message: string }> | null }) {
