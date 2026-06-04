@@ -151,6 +151,39 @@ export const tools: ToolDef[] = [
       const data = await gql(query, { demarche: { number: demarcheNumber }, stableId });
       return { content: [{ type: 'text', text: data.aideFormule }] };
     }
+  },
+  {
+    name: 'lire_referentiel_champ',
+    description: "Pour un champ référentiel (referentiel_de_polynesie) : liste les colonnes Baserow disponibles (nom + type) et le mapping actuel (pré-remplissage / rapatriement). À appeler avant de configurer le mapping. Erreur si Baserow est injoignable.",
+    inputSchema: {
+      demarcheNumber: z.number().int().describe('Numéro de la démarche.'),
+      stableId: z.string().describe('stable_id du champ référentiel.')
+    },
+    run: async ({ gql }, { demarcheNumber, stableId }) => {
+      const query = `query($demarche: FindDemarcheInput!, $stableId: String!){ referentielChampConfig(demarche: $demarche, stableId: $stableId){ tableId colonnes { nom typeMapping } mappingActuel } }`;
+      const data = await gql(query, { demarche: { number: demarcheNumber }, stableId });
+      return { content: [{ type: 'text', text: JSON.stringify(data.referentielChampConfig, null, 2) }] };
+    }
+  },
+  {
+    name: 'configurer_referentiel_mapping',
+    description: "Configure le mapping d'un champ référentiel : pour chaque colonne, soit la pré-remplir vers un champ cible (prefillStableId, situé APRÈS le référentiel, type compatible), soit la rapatrier/afficher (displayUsager/displayInstructeur). Appelle d'abord lire_referentiel_champ pour connaître les colonnes.",
+    inputSchema: {
+      demarcheNumber: z.number().int().describe('Numéro de la démarche.'),
+      stableId: z.string().describe('stable_id du champ référentiel.'),
+      colonnes: z.array(z.object({
+        colonne: z.string().describe('Nom de la colonne Baserow.'),
+        prefillStableId: z.string().optional().describe('Si fourni : pré-remplit ce champ cible (doit être situé après le référentiel, type compatible).'),
+        displayUsager: z.boolean().optional().describe("Rapatrier/afficher la valeur de cette colonne à l'usager."),
+        displayInstructeur: z.boolean().optional().describe("Rapatrier/afficher la valeur de cette colonne à l'instructeur."),
+        libelle: z.string().optional().describe('Libellé affiché pour cette colonne (défaut : nom de la colonne).')
+      })).describe('Liste des colonnes à configurer.')
+    },
+    run: async ({ gql }, a) => {
+      const query = `mutation($input: DemarcheConfigurerReferentielMappingInput!){ demarcheConfigurerReferentielMapping(input: $input) { champStableId errors { message } } }`;
+      const data = await gql(query, { input: { demarche: { number: a.demarcheNumber }, stableId: a.stableId, colonnes: a.colonnes } });
+      return mutationResult(data.demarcheConfigurerReferentielMapping);
+    }
   }
 ];
 

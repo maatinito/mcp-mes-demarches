@@ -4,9 +4,9 @@ import { tools } from './tools.js';
 const byName = (n: string) => tools.find((t) => t.name === n)!;
 
 describe('tools', () => {
-  it('expose les 7 outils', () => {
+  it('expose les 9 outils', () => {
     expect(tools.map((t) => t.name).sort()).toEqual(
-      ['aide_formule', 'ajouter_champ', 'definir_condition', 'deplacer_champ', 'lire_demarche', 'modifier_champ', 'supprimer_champ']
+      ['aide_formule', 'ajouter_champ', 'configurer_referentiel_mapping', 'definir_condition', 'deplacer_champ', 'lire_demarche', 'lire_referentiel_champ', 'modifier_champ', 'supprimer_champ']
     );
   });
 
@@ -72,5 +72,23 @@ describe('tools', () => {
     const [, variables] = gql.mock.calls[0];
     expect(variables).toEqual({ demarche: { number: 2 }, stableId: '9' });
     expect(res.content[0].text).toContain('SOMME');
+  });
+
+  it('lire_referentiel_champ interroge referentielChampConfig', async () => {
+    const gql = vi.fn().mockResolvedValue({ referentielChampConfig: { tableId: '24', colonnes: [{ nom: 'RaisonSociale', typeMapping: 'string' }], mappingActuel: {} } });
+    const res = await byName('lire_referentiel_champ').run({ gql }, { demarcheNumber: 2, stableId: '7' });
+    const [, variables] = gql.mock.calls[0];
+    expect(variables).toEqual({ demarche: { number: 2 }, stableId: '7' });
+    expect(res.content[0].text).toContain('RaisonSociale');
+  });
+
+  it('configurer_referentiel_mapping transmet les colonnes', async () => {
+    const gql = vi.fn().mockResolvedValue({ demarcheConfigurerReferentielMapping: { champStableId: '7', errors: null } });
+    await byName('configurer_referentiel_mapping').run({ gql }, {
+      demarcheNumber: 2, stableId: '7',
+      colonnes: [{ colonne: 'RaisonSociale', prefillStableId: '8' }]
+    });
+    const [, variables] = gql.mock.calls[0];
+    expect(variables.input.colonnes[0]).toEqual({ colonne: 'RaisonSociale', prefillStableId: '8' });
   });
 });
