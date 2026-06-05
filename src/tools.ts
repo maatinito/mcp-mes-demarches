@@ -34,7 +34,7 @@ const optionsSchema = z.object({
   expression_reguliere_error_message: z.string().optional().describe('Message d\'erreur si la saisie ne respecte pas l\'expression régulière (champ formatted).'),
   formule_expression: z.string().optional().describe("Expression d'un champ formule, en RÉFÉRENÇANT les champs par leur libellé : {Libellé}. Appelle d'abord l'outil aide_formule pour la syntaxe, les variables et fonctions disponibles. Le type de sortie et les dépendances sont inférés automatiquement (ne pas les fournir)."),
   table_id: z.string().optional().describe("id de la table Baserow d'un champ referentiel_de_polynesie (OBLIGATOIRE pour ce type). Liste via l'outil lister_referentiels_de_polynesie."),
-  mode: z.enum(['autocomplete', 'exact_match']).optional().describe('Mode de remplissage du champ référentiel : autocomplete (avec complétion) ou exact_match (sans complétion).'),
+  mode: z.enum(['autocomplete', 'exact_match']).optional().describe('Mode de remplissage du champ référentiel : autocomplete (avec complétion, par défaut) ou exact_match (sans complétion, cas rare).'),
   hint: z.string().optional().describe("Indications de saisie affichées à l'usager pour un champ référentiel (ex: « Saisissez le nom de votre commune »).")
 }).passthrough().describe('Options spécifiques au type de champ. Seules les options valides pour le type choisi sont acceptées (sinon erreur listant les options valides).');
 
