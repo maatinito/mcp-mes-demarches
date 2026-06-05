@@ -17,7 +17,8 @@ const MUTATION_PAYLOAD = '{ champStableId errors { message } }';
 
 // pf: options par type, typées pour guider Claude (le SDK MCP expose ces types en JSON Schema).
 // Le serveur valide les clés par type (OPTS_BY_TYPE) ; .passthrough() autorise les options
-// PF avancées (visa: accredited_users, formule: formule_expression, te_fenua…) non typées ici.
+// PF avancées non listées ici (te_fenua…). Les champs dérivés (formule_output_type, formule_deps)
+// sont calculés automatiquement — ne jamais les fournir.
 const optionsSchema = z.object({
   drop_down_options: z.array(z.string()).optional().describe('Valeurs de la liste déroulante. Pour une liste à deux niveaux (linked_drop_down_list) : préfixer chaque option primaire par -- (ex: "--Catégorie A--") puis lister ses sous-options ensuite, ligne par ligne.'),
   drop_down_other: z.boolean().optional().describe('Autoriser une réponse libre « Autre » (drop_down_list).'),
