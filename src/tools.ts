@@ -32,7 +32,10 @@ const optionsSchema = z.object({
   expression_reguliere_indications: z.string().optional().describe('Indication affichée à l\'usager sur le format attendu (champ formatted).'),
   expression_reguliere_exemple_text: z.string().optional().describe('Exemple de saisie valide montré à l\'usager (champ formatted).'),
   expression_reguliere_error_message: z.string().optional().describe('Message d\'erreur si la saisie ne respecte pas l\'expression régulière (champ formatted).'),
-  formule_expression: z.string().optional().describe("Expression d'un champ formule, en RÉFÉRENÇANT les champs par leur libellé : {Libellé}. Appelle d'abord l'outil aide_formule pour la syntaxe, les variables et fonctions disponibles. Le type de sortie et les dépendances sont inférés automatiquement (ne pas les fournir).")
+  formule_expression: z.string().optional().describe("Expression d'un champ formule, en RÉFÉRENÇANT les champs par leur libellé : {Libellé}. Appelle d'abord l'outil aide_formule pour la syntaxe, les variables et fonctions disponibles. Le type de sortie et les dépendances sont inférés automatiquement (ne pas les fournir)."),
+  table_id: z.string().optional().describe("id de la table Baserow d'un champ referentiel_de_polynesie (OBLIGATOIRE pour ce type). Liste via l'outil lister_referentiels_de_polynesie."),
+  mode: z.enum(['autocomplete', 'exact_match']).optional().describe('Mode de remplissage du champ référentiel : autocomplete (avec complétion) ou exact_match (sans complétion).'),
+  hint: z.string().optional().describe("Indications de saisie affichées à l'usager pour un champ référentiel (ex: « Saisissez le nom de votre commune »).")
 }).passthrough().describe('Options spécifiques au type de champ. Seules les options valides pour le type choisi sont acceptées (sinon erreur listant les options valides).');
 
 function mutationResult(payload: { champStableId: string | null; errors: Array<{ message: string }> | null }) {
@@ -57,7 +60,7 @@ export const tools: ToolDef[] = [
   },
   {
     name: 'ajouter_champ',
-    description: "Ajoute un champ à la révision brouillon. Renvoie le stable_id du nouveau champ. Options par type via `options` : listes → drop_down_options/drop_down_other ; nombres → positive_number/min_number/max_number ; texte long → character_limit.",
+    description: "Ajoute un champ à la révision brouillon. Renvoie le stable_id du nouveau champ. Options par type via `options` : listes → drop_down_options/drop_down_other ; nombres → positive_number/min_number/max_number ; texte long → character_limit ; référentiel → table_id (OBLIGATOIRE, à récupérer via lister_referentiels_de_polynesie), mode, hint.",
     inputSchema: {
       demarcheNumber: z.number().int(),
       typeChamp: z.string().describe('text, textarea, integer_number, decimal_number, email, phone, date, yes_no, checkbox, drop_down_list, header_section, repetition, etc.'),
@@ -81,7 +84,7 @@ export const tools: ToolDef[] = [
   },
   {
     name: 'modifier_champ',
-    description: "Modifie un champ existant (libellé, description, obligatoire, type). Le changement de type d'un champ déjà publié est restreint aux types compatibles. Options par type via `options` : listes → drop_down_options/drop_down_other ; nombres → positive_number/min_number/max_number ; texte long → character_limit.",
+    description: "Modifie un champ existant (libellé, description, obligatoire, type). Le changement de type d'un champ déjà publié est restreint aux types compatibles. Options par type via `options` : listes → drop_down_options/drop_down_other ; nombres → positive_number/min_number/max_number ; texte long → character_limit ; référentiel → table_id (OBLIGATOIRE pour referentiel_de_polynesie, via lister_referentiels_de_polynesie), mode, hint.",
     inputSchema: {
       demarcheNumber: z.number().int(),
       stableId: z.string(),
@@ -183,6 +186,24 @@ export const tools: ToolDef[] = [
       const query = `mutation($input: DemarcheConfigurerReferentielMappingInput!){ demarcheConfigurerReferentielMapping(input: $input) { champStableId errors { message } } }`;
       const data = await gql(query, { input: { demarche: { number: a.demarcheNumber }, stableId: a.stableId, colonnes: a.colonnes } });
       return mutationResult(data.demarcheConfigurerReferentielMapping);
+    }
+  },
+  {
+    name: 'lister_referentiels_de_polynesie',
+    description: "Liste les référentiels Baserow disponibles (id + nom) à utiliser comme table_id d'un champ referentiel_de_polynesie.",
+    inputSchema: {},
+    run: async ({ gql }) => {
+      const data = await gql(`query { referentielsDePolynesie { id nom } }`, {});
+      return { content: [{ type: 'text', text: JSON.stringify(data.referentielsDePolynesie, null, 2) }] };
+    }
+  },
+  {
+    name: 'lister_colonnes_referentiel',
+    description: "Liste les colonnes (nom + type) d'une table de référentiel Baserow à partir de son tableId, AVANT de créer le champ — pour préparer le mapping. Erreur si Baserow injoignable.",
+    inputSchema: { tableId: z.string().describe('id de la table Baserow (cf. lister_referentiels_de_polynesie).') },
+    run: async ({ gql }, { tableId }) => {
+      const data = await gql(`query($tableId: String!){ referentielColonnes(tableId: $tableId){ nom typeMapping } }`, { tableId });
+      return { content: [{ type: 'text', text: JSON.stringify(data.referentielColonnes, null, 2) }] };
     }
   }
 ];

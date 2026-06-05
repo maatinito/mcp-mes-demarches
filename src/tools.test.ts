@@ -4,9 +4,9 @@ import { tools } from './tools.js';
 const byName = (n: string) => tools.find((t) => t.name === n)!;
 
 describe('tools', () => {
-  it('expose les 9 outils', () => {
+  it('expose les 11 outils', () => {
     expect(tools.map((t) => t.name).sort()).toEqual(
-      ['aide_formule', 'ajouter_champ', 'configurer_referentiel_mapping', 'definir_condition', 'deplacer_champ', 'lire_demarche', 'lire_referentiel_champ', 'modifier_champ', 'supprimer_champ']
+      ['aide_formule', 'ajouter_champ', 'configurer_referentiel_mapping', 'definir_condition', 'deplacer_champ', 'lire_demarche', 'lire_referentiel_champ', 'lister_colonnes_referentiel', 'lister_referentiels_de_polynesie', 'modifier_champ', 'supprimer_champ']
     );
   });
 
@@ -90,5 +90,23 @@ describe('tools', () => {
     });
     const [, variables] = gql.mock.calls[0];
     expect(variables.input.colonnes[0]).toEqual({ colonne: 'RaisonSociale', prefillStableId: '8' });
+  });
+
+  it('lister_referentiels_de_polynesie interroge referentielsDePolynesie et retourne le JSON', async () => {
+    const gql = vi.fn().mockResolvedValue({ referentielsDePolynesie: [{ id: '24', nom: 'Communes' }] });
+    const res = await byName('lister_referentiels_de_polynesie').run({ gql }, {});
+    const [query, variables] = gql.mock.calls[0];
+    expect(query).toContain('referentielsDePolynesie');
+    expect(variables).toEqual({});
+    expect(res.content[0].text).toContain('Communes');
+  });
+
+  it('lister_colonnes_referentiel interroge referentielColonnes avec tableId et retourne le JSON', async () => {
+    const gql = vi.fn().mockResolvedValue({ referentielColonnes: [{ nom: 'RaisonSociale', typeMapping: 'string' }] });
+    const res = await byName('lister_colonnes_referentiel').run({ gql }, { tableId: '24' });
+    const [query, variables] = gql.mock.calls[0];
+    expect(query).toContain('referentielColonnes');
+    expect(variables).toEqual({ tableId: '24' });
+    expect(res.content[0].text).toContain('RaisonSociale');
   });
 });
