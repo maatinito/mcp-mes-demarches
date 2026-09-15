@@ -51,10 +51,10 @@ const demarcheInput = (n: number) => ({ number: n });
 export const tools: ToolDef[] = [
   {
     name: 'lire_demarche',
-    description: "Liste les champs de la révision brouillon d'une démarche (stable_id, type, libellé, condition…). À appeler avant de modifier/déplacer/supprimer un champ existant.",
+    description: "Liste les champs de la révision brouillon d'une démarche (stable_id, type, libellé, options, condition d'affichage). `condition` est au format de definir_condition (combinateur + termes) : on peut la relire, l'ajuster et la renvoyer telle quelle. À appeler avant de modifier/déplacer/supprimer un champ existant.",
     inputSchema: { demarcheNumber: z.number().int().describe('Numéro de la démarche.') },
     run: async ({ gql }, { demarcheNumber }) => {
-      const query = `query($demarche: FindDemarcheInput!){ demarcheChamps(demarche: $demarche){ stableId typeChamp libelle description obligatoire prive parentStableId position aCondition options } }`;
+      const query = `query($demarche: FindDemarcheInput!){ demarcheChamps(demarche: $demarche){ stableId typeChamp libelle description obligatoire prive parentStableId position aCondition condition { combinateur termes { champSourceStableId champSourceLibelle operateur valeur } } options } }`;
       const data = await gql(query, { demarche: demarcheInput(demarcheNumber) });
       return { content: [{ type: 'text', text: JSON.stringify(data.demarcheChamps, null, 2) }] };
     }
@@ -134,7 +134,7 @@ export const tools: ToolDef[] = [
       combinateur: z.enum(['ET', 'OU']).optional(),
       termes: z.array(z.object({
         champSourceStableId: z.string(),
-        operateur: z.enum(['egal', 'different', 'superieur', 'superieur_ou_egal', 'inferieur', 'inferieur_ou_egal', 'inclut', 'exclut', 'dans_archipel', 'hors_archipel', 'dans_departement', 'dans_region']),
+        operateur: z.enum(['egal', 'different', 'superieur', 'superieur_ou_egal', 'inferieur', 'inferieur_ou_egal', 'inclut', 'exclut', 'dans_archipel', 'hors_archipel', 'dans_departement', 'hors_departement', 'dans_region', 'hors_region']),
         valeur: z.string()
       }))
     },

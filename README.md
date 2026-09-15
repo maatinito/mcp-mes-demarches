@@ -10,7 +10,7 @@ en langage naturel via Claude.
 
 ## Qu'est-ce que c'est ?
 
-Ce serveur MCP expose six outils que Claude peut appeler pour créer et modifier
+Ce serveur MCP expose onze outils que Claude peut appeler pour créer et modifier
 la structure d'un formulaire (démarche) dans mes-demarches, via l'API GraphQL v2.
 Vous lui décrivez en français le formulaire voulu, il génère les appels d'outils
 dans le bon ordre.
@@ -38,16 +38,33 @@ Les fichiers compilés sont générés dans `dist/`.
 
 ---
 
-## Les 6 outils
+## Les 11 outils
+
+### Structure du formulaire
 
 | Outil | Rôle |
 |---|---|
-| `lire_demarche` | Liste les champs de la révision brouillon (stable_id, type, libellé, condition…). À appeler en premier avant toute modification. |
+| `lire_demarche` | Liste les champs de la révision brouillon (stable_id, type, libellé, options, condition d'affichage au format de `definir_condition`). À appeler en premier avant toute modification. |
 | `ajouter_champ` | Ajoute un champ (texte, date, liste, répétition…) à la révision brouillon. |
 | `modifier_champ` | Modifie un champ existant (libellé, description, obligatoire, type). |
 | `deplacer_champ` | Déplace un champ juste après un autre champ. |
 | `supprimer_champ` | Supprime un champ de la révision brouillon. |
-| `definir_condition` | Définit (ou retire) la condition d'affichage d'un champ. |
+| `definir_condition` | Définit (ou retire) la condition d'affichage d'un champ. Même format que la `condition` renvoyée par `lire_demarche`. |
+
+### Formules
+
+| Outil | Rôle |
+|---|---|
+| `aide_formule` | Documentation pour écrire l'expression d'un champ formule (variables référençables, fonctions, syntaxe, exemples). À appeler avant de poser `formule_expression` via `modifier_champ`. |
+
+### Référentiels Baserow (`referentiel_de_polynesie`)
+
+| Outil | Rôle |
+|---|---|
+| `lister_referentiels_de_polynesie` | Liste les tables Baserow disponibles (id + nom) à utiliser comme `table_id` d'un champ référentiel. |
+| `lister_colonnes_referentiel` | Liste les colonnes (nom + type) d'une table Baserow à partir de son `tableId`, avant de créer le champ. |
+| `lire_referentiel_champ` | Pour un champ référentiel existant : colonnes disponibles et mapping actuel (pré-remplissage / rapatriement). |
+| `configurer_referentiel_mapping` | Configure le mapping d'un champ référentiel : pré-remplir une colonne vers un champ cible situé après, ou l'afficher côté usager / instructeur. |
 
 ---
 

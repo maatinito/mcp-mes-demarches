@@ -40,13 +40,24 @@ describe('tools', () => {
   });
 
   it('lire_demarche fait une query et renvoie la liste JSON avec les options', async () => {
-    const champs = [{ stableId: '1', typeChamp: 'drop_down_list', libelle: 'Civilité', obligatoire: false, prive: false, parentStableId: null, position: 0, aCondition: false, options: { drop_down_options: ['M.', 'Mme'] } }];
+    const champs = [{ stableId: '1', typeChamp: 'drop_down_list', libelle: 'Civilité', obligatoire: false, prive: false, parentStableId: null, position: 0, aCondition: false, condition: null, options: { drop_down_options: ['M.', 'Mme'] } }];
     const gql = vi.fn().mockResolvedValue({ demarcheChamps: champs });
     const res = await byName('lire_demarche').run({ gql }, { demarcheNumber: 5 });
     const [, variables] = gql.mock.calls[0];
     expect(variables.demarche).toEqual({ number: 5 });
     expect(res.content[0].text).toContain('"libelle": "Civilité"');
     expect(res.content[0].text).toContain('"drop_down_options"');
+  });
+
+  it('lire_demarche demande la condition d affichage au format de definir_condition', async () => {
+    const condition = { combinateur: 'ET', termes: [{ champSourceStableId: '3', champSourceLibelle: 'Âge', operateur: 'superieur_ou_egal', valeur: '18' }] };
+    const champs = [{ stableId: '4', typeChamp: 'text', libelle: 'Détail', obligatoire: false, prive: false, parentStableId: null, position: 1, aCondition: true, condition, options: {} }];
+    const gql = vi.fn().mockResolvedValue({ demarcheChamps: champs });
+    const res = await byName('lire_demarche').run({ gql }, { demarcheNumber: 5 });
+    const [query] = gql.mock.calls[0];
+    expect(query).toContain('condition { combinateur termes { champSourceStableId champSourceLibelle operateur valeur } }');
+    expect(res.content[0].text).toContain('"operateur": "superieur_ou_egal"');
+    expect(res.content[0].text).toContain('"champSourceLibelle": "Âge"');
   });
 
   it('ajouter_champ transmet les options', async () => {
